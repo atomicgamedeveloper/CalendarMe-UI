@@ -1,0 +1,31 @@
+#flex-container {
+    display: flex;
+    flex-direction: column;
+    width: calc(100% - 16px);
+    height: calc(100vh - 150px);
+    /* subtracting the height of the header and footer */
+}
+
+#chat-history {
+    flex-grow: 1;
+    overflow-y: auto;
+}
+
+#user-input-section {
+    display: flex;
+    height: 10vh;
+    width: 100%;
+    justify-content: space-between;
+}
+
+#text-input-box {
+    flex-grow: 1;
+    width: calc(80% - 16px);
+    margin-right: 8px;
+    height: 150px;
+}
+
+#send-button {
+    width: calc(20% - 8px);
+    height: 150px;
+}

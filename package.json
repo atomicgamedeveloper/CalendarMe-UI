@@ -1,0 +1,29 @@
+{
+  "name": "calendarmejs",
+  "version": "1.0.0",
+  "description": "CalendarMe User Interface Version",
+  "main": "main.js",
+  "scripts": {
+    "test": "run",
+    "start": "electron ."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/atomicgamedeveloper/CalendarMe-UI.git"
+  },
+  "keywords": [
+    "Calendar",
+    "Google",
+    "OpenAI",
+    "GPT"
+  ],
+  "author": "atomic",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/atomicgamedeveloper/CalendarMe-UI/issues"
+  },
+  "homepage": "https://github.com/atomicgamedeveloper/CalendarMe-UI#readme",
+  "devDependencies": {
+    "electron": "^30.0.1"
+  }
+}
