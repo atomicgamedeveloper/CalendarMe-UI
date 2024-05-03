@@ -1,31 +1,32 @@
+html {
+    background-color: rgb(48, 48, 48);
+}
+
 #flex-container {
     display: flex;
     flex-direction: column;
-    width: calc(100% - 16px);
-    height: calc(100vh - 150px);
-    /* subtracting the height of the header and footer */
+    width: calc(100vw - 20px);
+    height: calc(100vh - 20px);
+}
+
+p {
+    color: white;
+    margin-left: 16px;
 }
 
 #chat-history {
     flex-grow: 1;
     overflow-y: auto;
+    border: 2px solid #ffffff;
 }
 
 #user-input-section {
     display: flex;
-    height: 10vh;
-    width: 100%;
-    justify-content: space-between;
+    border: 2px solid #ffffff;
 }
 
 #text-input-box {
-    flex-grow: 1;
-    width: calc(80% - 16px);
-    margin-right: 8px;
-    height: 150px;
-}
-
-#send-button {
-    width: calc(20% - 8px);
-    height: 150px;
+    height: 100px;
+    width: 100%;
+    border: 10px;
 }
