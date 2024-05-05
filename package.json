@@ -25,5 +25,8 @@
   "homepage": "https://github.com/atomicgamedeveloper/CalendarMe-UI#readme",
   "devDependencies": {
     "electron": "^30.0.1"
+  },
+  "dependencies": {
+    "openai": "^4.40.2"
   }
 }

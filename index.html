@@ -7,12 +7,14 @@
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'">
     <title>CalendarMe UI</title>
     <link rel="stylesheet" href="styles.css">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self';
+    connect-src 'self' https://api.openai.com;
+    script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net;">
 </head>
 
 <body>
     <div id="flex-container">
         <div id="chat-history">
-            <p>Hello World!</p>
         </div>
         <div id="user-input-section">
             <input type="text" id="text-input-box" placeholder="Write your event description here...">
