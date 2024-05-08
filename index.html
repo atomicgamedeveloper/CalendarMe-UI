@@ -4,12 +4,13 @@
 <head>
     <meta charset="UTF-8">
     <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'">
     <title>CalendarMe UI</title>
     <link rel="stylesheet" href="styles.css">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self';
-    connect-src 'self' https://api.openai.com;
-    script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net;">
+    <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self';
+    connect-src 'self' https://api.openai.com https://oauth2.googleapis.com https://www.googleapis.com;
+    script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net;
+">
 </head>
 
 <body>
@@ -20,6 +21,7 @@
             <input type="text" id="text-input-box" placeholder="Write your event description here...">
         </div>
     </div>
+    <script src="calendar.js"></script>
     <script src="interaction.js"></script>
 </body>
 

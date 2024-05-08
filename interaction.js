@@ -1,4 +1,4 @@
-const fs = require('fs');
+let fs = require('fs');
 const OpenAI = require('openai');
 let openAIKey = "";
 
@@ -97,7 +97,5 @@ textInputBox.addEventListener('keydown', function (e) {
         let textFromInputBox = textInputBox.value;
         textInputBox.value = "";
         chatWindow.sendMessage(textFromInputBox);
-    } else {
-        console.log('the ship ain\'t shippin\'');
     }
 });

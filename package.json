@@ -27,6 +27,8 @@
     "electron": "^30.0.1"
   },
   "dependencies": {
+    "@google-cloud/local-auth": "^2.1.0",
+    "googleapis": "^105.0.0",
     "openai": "^4.40.2"
   }
 }
