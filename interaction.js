@@ -169,6 +169,10 @@ class ChatWindow {
         return this.#messages;
     }
 
+    clearMessages() {
+        this.#messages = [];
+    }
+
     async sendUserMessage(prompt) {
         let userMessage = this.#makeMessage(this.#USER, prompt);
         this.#messagesAppend(userMessage);
@@ -211,9 +215,12 @@ textInputBox.addEventListener('keydown', async function (e) {
 
 
         if (chatWindow.getState() == CHAT_WINDOW_STATES.CREATE) {
-            constructedPrompt = `Given the following current date and time: ${day}, ${today}T${time}:00 and planning prompt: '${planning_prompt}', format the prompt's contents as JSON objects with the following keys: summary, description, start, end, in an array that can be parsed to create calendar events. Please use 1-2 emojis per complex sentence in the title's lhs and description to make them more personal.`;
+            constructedPrompt = `Given the following current date and time: ${day}, ${today}T${time}:00 and planning prompt: '${planning_prompt}', format the prompt's contents as JSON objects with the following keys: summary, description, start, end (don't write timezone.), in an array that can be parsed to create calendar events. Please use 1-2 emojis per complex sentence in the title's lhs and description to make them more personal.`;
             chatWindow.setState(CHAT_WINDOW_STATES.SPECIFY);
-            chatWindow.sendUserMessage(constructedPrompt);
+            await chatWindow.sendUserMessage(constructedPrompt);
+            (async () => {
+                await chatWindow.sendSystemMessage("Is this event ok, then write \"yes\" to confirm.");
+            })();
         } else {
             if (constructedPrompt == "yes") {
                 let messages = chatWindow.getMessages()
@@ -227,6 +234,13 @@ textInputBox.addEventListener('keydown', async function (e) {
                 calendarjs.authorize().then(auth => { calendarjs.createEvents(auth, events).catch(console.error); }).catch(console.error);
                 (async () => {
                     await chatWindow.sendSystemMessage("Event creation attempted!");
+                })();
+                chatWindow.setState(CHAT_WINDOW_STATES.CREATE);
+                chatWindow.clearMessages
+            } else {
+                await chatWindow.sendUserMessage(constructedPrompt);
+                (async () => {
+                    await chatWindow.sendSystemMessage("Is this event ok, then write \"yes\" to confirm.");
                 })();
             }
         }
