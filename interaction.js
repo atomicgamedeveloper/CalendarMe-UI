@@ -1,5 +1,8 @@
 let fs = require('fs');
+const { chat, auth } = require('googleapis/build/src/apis/chat');
 const OpenAI = require('openai');
+const calendarjs = require('./calendar.js');
+
 let openAIKey = "";
 
 try {
@@ -62,6 +65,7 @@ class ChatWindow {
         this.#messages.push(message);
     }
 
+
     async #streamResponse(messages) {
         let stream = await openai.chat.completions.create({
             'model': this.model,
@@ -94,14 +98,46 @@ class ChatWindow {
         chatHistory.scrollTo({ top: chatHistory.scrollHeight });
     }
 
-    #parseJSONToObject(jsonString) {
+    async extractAndParseJSON(jsonString) {
+        const normalizedJSONString = this.#extractJSONFromString(jsonString);
+        return await this.#parseJSONToObject(normalizedJSONString);
+    }
+
+    #extractJSONFromString(text) {
+        const jsonPattern = /```json\s*([\s\S]*?)\s*```/; // Corrected regex pattern// Regex to extract content between ```json and ```
+        const matches = jsonPattern.exec(text);
+
+        if (matches && matches[1]) {
+            console.log(matches[1]);
+            return matches[1]; // Returns the extracted JSON string
+        } else {
+            console.error('No JSON found in the string');
+            return null;
+        }
+    }
+
+    async #parseJSONToObject(jsonString) {
         try {
-            let obj = JSON.parse(jsonString);
-            return obj;
+            return JSON.parse(jsonString);
         } catch (e) {
-            // Log error or handle it as needed
-            console.error('Error parsing JSON', e);
-            return null; // or return an empty object {}, based on your needs
+            const fixedJsonPrompt = `This JSON array: '${jsonString}'\n\n` +
+                `gives this error:\n'${e}'.\nplease fix it.`;
+
+            await this.sendUserMessage(fixedJsonPrompt);
+
+            const fixedJsonMessage = this.#messages.slice(-1)[0].content;
+            console.log(`Fixed JSON: ${fixedJsonMessage}`);
+
+            const fixedJsonString = this.#extractJSONFromString(fixedJsonMessage);
+
+            try {
+                return JSON.parse(fixedJsonString);
+            } catch (error) {
+                console.error('Error parsing JSON', error);
+                // Consider throwing the error to indicate failure to the caller,
+                // or handle it in an application-specific way if returning null is not desired.
+                return null;
+            }
         }
     }
 
@@ -133,14 +169,14 @@ class ChatWindow {
         return this.#messages;
     }
 
-    sendUserMessage(prompt) {
+    async sendUserMessage(prompt) {
         let userMessage = this.#makeMessage(this.#USER, prompt);
         this.#messagesAppend(userMessage);
         this.#generateMessageHTML(userMessage);
         let messages = this.getMessages();
         let emptyResponseMessage = this.#makeMessage(this.#ASSISTANT, "");
         this.#generateMessageHTML(emptyResponseMessage);
-        this.#streamResponse(messages);
+        await this.#streamResponse(messages);
     }
 
     async sendSystemMessage(prompt) {
@@ -154,13 +190,14 @@ function sleep(ms) {
 }
 
 const chatWindow = new ChatWindow(GPT4);
+const chatWindowCheap = new ChatWindow(GPT4);
 (async () => {
     await chatWindow.sendSystemMessage("Welcome to CalendarMe!");
     await sleep(1000);
     await chatWindow.sendSystemMessage("Please write your plans here in as much detail as you like.")
 })();
 
-textInputBox.addEventListener('keydown', function (e) {
+textInputBox.addEventListener('keydown', async function (e) {
     if (e.key === 'Enter') {
         let today = new Date().toISOString().split('T')[0];
         let time = new Date().toTimeString().split(' ')[0];
@@ -170,12 +207,28 @@ textInputBox.addEventListener('keydown', function (e) {
 
         textInputBox.value = "";
 
-        let constructedPrompt = planning_prompt//`Given the following current date and time: ${day}, ${today}T${time} and planning prompt: '${planning_prompt}', format the prompt's contents as JSON objects with the following keys: summary, location (Optional.), description, start, end, recurrence (Optional. array of RRULE strings), reminders (Optional. useDefault, overrides), timeZone (Etc/GMT+2), allDay (boolean), in an array that can be parsed to create calendar events. Please use 1-2 emojis per complex sentence in the title's lhs and description to make them more personal.`;
+        let constructedPrompt = planning_prompt//`Given the following current date and time: ${day}, ${today}T${time} and planning prompt: '${planning_prompt}', format the prompt's contents as JSON objects with the following keys: summary, location (Optional.), description, start (ISO 8601), end, recurrence (Optional. array of RRULE strings), reminders (Optional. useDefault, overrides), timeZone (Etc/GMT+2), allDay (boolean), in an array that can be parsed to create calendar events. Please use 1-2 emojis per complex sentence in the title's lhs and description to make them more personal.`;
+
 
         if (chatWindow.getState() == CHAT_WINDOW_STATES.CREATE) {
-            constructedPrompt = `Given the following current date and time: ${day}, ${today}T${time} and planning prompt: '${planning_prompt}', format the prompt's contents as JSON objects with the following keys: summary, location (Optional.), description, start, end, recurrence (Optional. array of RRULE strings), reminders (Optional. useDefault, overrides), timeZone (Etc/GMT+2), allDay (Optional. boolean), in an array that can be parsed to create calendar events. Please use 1-2 emojis per complex sentence in the title's lhs and description to make them more personal.`;
+            constructedPrompt = `Given the following current date and time: ${day}, ${today}T${time}:00 and planning prompt: '${planning_prompt}', format the prompt's contents as JSON objects with the following keys: summary, description, start, end, in an array that can be parsed to create calendar events. Please use 1-2 emojis per complex sentence in the title's lhs and description to make them more personal.`;
             chatWindow.setState(CHAT_WINDOW_STATES.SPECIFY);
+            chatWindow.sendUserMessage(constructedPrompt);
+        } else {
+            if (constructedPrompt == "yes") {
+                let messages = chatWindow.getMessages()
+                let events_message = messages.slice(-1)[0].content;
+                let events_json = await chatWindow.extractAndParseJSON(events_message);
+                let eventsToProcess = Array.isArray(events_json) ? events_json : [events_json];
+                console.log("The created events array after events_json call");
+                console.log(events_json);
+                let events = calendarjs.createEventObjects(eventsToProcess);
+
+                calendarjs.authorize().then(auth => { calendarjs.createEvents(auth, events).catch(console.error); }).catch(console.error);
+                (async () => {
+                    await chatWindow.sendSystemMessage("Event creation attempted!");
+                })();
+            }
         }
-        chatWindow.sendUserMessage(constructedPrompt);
     }
 });

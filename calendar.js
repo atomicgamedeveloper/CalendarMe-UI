@@ -4,6 +4,8 @@ const process = require('process');
 const { authenticate } = require('@google-cloud/local-auth');
 const { google } = require('googleapis');
 
+console.log("Hello World!");
+
 // If modifying these scopes, delete token.json.
 const SCOPES = ['https://www.googleapis.com/auth/calendar'];
 // The file token.json stores the user's access and refresh tokens, and is
@@ -15,24 +17,18 @@ const CREDENTIALS_PATH = path.join(process.cwd(), 'credentials.json');
 async function createEvents(auth, eventBodiesArray) {
     const calendar = google.calendar({ version: 'v3', auth });
 
-    const promises = eventBodiesArray.map(eventBody => {
-        return calendar.events.insert({
-            calendarId: 'primary',
-            resource: eventBody,
-        }).then(event => {
+    for (let eventBody of eventBodiesArray) {
+        try {
+            const event = await calendar.events.insert({
+                calendarId: 'primary',
+                resource: eventBody,
+            });
             console.log(`Event created: ${event.data.htmlLink}`);
-            return event; // Return event for further processing if needed.
-        }).catch(error => {
+        } catch (error) {
             console.error('Error creating event', error);
-            return null; // Return null or appropriate error handling.
-        });
-    });
-
-    try {
-        const results = await Promise.all(promises);
-        // Optional: Process results or perform further actions here.
-    } catch (error) {
-        console.error('An error occurred with Promise.all', error);
+            // Optionally, continue to the next iteration instead of stopping the loop.
+            // continue;
+        }
     }
 }
 
@@ -40,11 +36,12 @@ function createEventObjects(optionsArray) {
     // Initialize an array to hold all event objects
     let events = [];
 
+    console.log(optionsArray);
+
     // Iterate over each set of options
     optionsArray.forEach(options => {
         let event = {
             'summary': options.summary,
-            'location': options.location,
             'description': options.description,
             // Initialize start and end events without dateTime or date
             'start': {},
@@ -55,13 +52,9 @@ function createEventObjects(optionsArray) {
         if (options.allDay) {
             event.start.date = options.start;
             event.end.date = options.end;
-            event.start.timeZone = 'GMT+2';
-            event.end.timeZone = 'GMT+2';
         } else {
-            event.start.dateTime = options.start;
-            event.end.dateTime = options.end;
-            event.start.timeZone = options.startTimeZone || 'Etc/GMT+2';
-            event.end.timeZone = options.endTimeZone || 'Etc/GMT+2';
+            event.start["dateTime"] = options.start + "+02:00";
+            event.end["dateTime"] = options.end + "+02:00";
         }
 
         // Add recurrence if provided
@@ -80,7 +73,8 @@ function createEventObjects(optionsArray) {
         // Add the constructed event to the events array
         events.push(event);
     });
-
+    console.log("The returned object:");
+    console.log(events);
     return events; // Returns an array of event objects
 }
 
@@ -146,6 +140,14 @@ async function authorize() {
     return client;
 }
 
+/*
+authorize().then(auth => {
+    const newEvent = createEventObjects([{ "summary": "😴 Rest Time", "description": "I'm going to take some time off to lie down and recharge 🔋.", "start": "2024-05-09T22:15:00", "end": "2024-05-09T23:15:00" }])//[{ "summary": "😴 Rest Time", "description": "I'm going to take some time off to lie down and recharge 🔋.", "start": { "dateTime": "2024-05-09T22:15:00+01:00" }, "end": { "dateTime": "2024-05-09T23:15:00+01:00" } }];
+    console.log([{ "summary": "😴 Rest Time", "description": "I'm going to take some time off to lie down and recharge 🔋.", "start": { "dateTime": "2024-05-09T22:15:00+01:00" }, "end": { "dateTime": "2024-05-09T23:15:00+01:00" } }]);
+    console.log(newEvent);
+    createEvents(auth, newEvent).catch(console.error);
+}).catch(console.error);
+/*
 authorize().then(auth => {
     // Preparing the date format for an all-day event
     const startDate = new Date('2024-05-15').toISOString().substring(0, 10); // Converting to 'YYYY-MM-DD' format
@@ -166,3 +168,7 @@ authorize().then(auth => {
     createEvents(auth, newEvent).catch(console.error);
 
 }).catch(console.error);
+
+*/
+
+module.exports = { createEvents, createEventObjects, authorize }
