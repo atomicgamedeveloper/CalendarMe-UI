@@ -5,7 +5,8 @@
   "main": "main.js",
   "scripts": {
     "test": "run",
-    "start": "electron ."
+    "start": "electron .",
+    "make": "electron-packager . CalendarMeJS --platform=win32 --arch=x64 --out=dist --overwrite"
   },
   "repository": {
     "type": "git",

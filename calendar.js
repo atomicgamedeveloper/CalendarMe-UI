@@ -4,8 +4,6 @@ const process = require('process');
 const { authenticate } = require('@google-cloud/local-auth');
 const { google } = require('googleapis');
 
-console.log("Hello World!");
-
 // If modifying these scopes, delete token.json.
 const SCOPES = ['https://www.googleapis.com/auth/calendar'];
 // The file token.json stores the user's access and refresh tokens, and is
@@ -33,36 +31,64 @@ async function createEvents(auth, eventBodiesArray) {
 }
 
 function createEventObjects(optionsArray) {
-    // Initialize an array to hold all event objects
     let events = [];
+    const currentDateTime = new Date();  // Get the current date and time
 
-    console.log(optionsArray);
+    function formatDateForAllDay(dateOrObject) {
+        let dateString;
 
-    // Iterate over each set of options
+        if (dateOrObject && typeof dateOrObject === "object" && "date" in dateOrObject) {
+            dateString = dateOrObject.date;
+        } else if (typeof dateOrObject === "string") {
+            dateString = dateOrObject;
+        } else {
+            console.error("Invalid input to formatDateForAllDay:", dateOrObject);
+            return null;
+        }
+
+        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+        if (dateRegex.test(dateString)) return dateString;
+
+        const dateTimeParts = dateString.split('T');
+        return dateTimeParts[0];
+    }
+
     optionsArray.forEach(options => {
         let event = {
             'summary': options.summary,
             'description': options.description,
-            // Initialize start and end events without dateTime or date
             'start': {},
             'end': {}
         };
 
-        // Check if it's an all day event
+        let eventStartDateTime, eventEndDateTime;
+
         if (options.allDay) {
-            event.start.date = options.start;
-            event.end.date = options.end;
+            event.start.date = formatDateForAllDay(options.start);
+            event.end.date = formatDateForAllDay(options.end);
+
+            // For all-day events, set time to start of day for comparison:
+            eventStartDateTime = new Date(event.start.date + "T00:00:00");
         } else {
             event.start["dateTime"] = options.start + "+02:00";
             event.end["dateTime"] = options.end + "+02:00";
+
+            eventStartDateTime = new Date(options.start); // Use real date-time comparison
         }
 
-        // Add recurrence if provided
+        // Check if the current date-time is past the event start date-time:
+        if (currentDateTime >= eventStartDateTime) {
+            event.summary = "✅" + event.summary;
+        }
+
         if (options.recurrence) {
             event.recurrence = options.recurrence;
         }
 
-        // Add reminders if provided
+        if (options.location) {
+            event.location = options.location;
+        }
+
         if (options.reminders) {
             event.reminders = {
                 'useDefault': false,
@@ -70,12 +96,16 @@ function createEventObjects(optionsArray) {
             };
         }
 
-        // Add the constructed event to the events array
+        if (options.color) {
+            event.color = options.color;
+        }
+
         events.push(event);
     });
+
     console.log("The returned object:");
     console.log(events);
-    return events; // Returns an array of event objects
+    return events;
 }
 
 /**

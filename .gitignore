@@ -2,3 +2,4 @@ node_modules
 openai.txt
 token.json
 credentials.json
+dist
