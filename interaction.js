@@ -18,7 +18,7 @@ const openai = new OpenAI({
 
 let textInputBox = document.getElementById('text-input-box')
 let chatHistory = document.getElementById('chat-history')
-const defaultSystemPrompt = "You are an event manager AI who creates inspiring events with interesting emoji-choices and powerful, fitting writing.";
+const defaultSystemPrompt = "You are an event manager AI who creates inspiring events with inspired emoji-choices and powerful, fitting writing.";
 const GPT4o = "gpt-4o";
 const GPT4 = "gpt-4-turbo-preview";
 const GPT3_5 = 'gpt-3.5-turbo-0125';
@@ -26,6 +26,7 @@ const GPT3_5 = 'gpt-3.5-turbo-0125';
 const CHAT_WINDOW_STATES = {
     CREATE: 'Create',
     SPECIFY: 'Specify',
+    ACCEPT: 'Accept',
 };
 
 class ChatWindow {
@@ -49,9 +50,6 @@ class ChatWindow {
     }
 
     setState(state) {
-        if (state != CHAT_WINDOW_STATES.CREATE && state != CHAT_WINDOW_STATES.SPECIFY) {
-            throw new Error(`State '${model}' does not exist.`)
-        }
         this.#STATE = state;
     }
 
@@ -100,7 +98,7 @@ class ChatWindow {
         chatHistory.scrollTo({ top: chatHistory.scrollHeight });
     }
 
-    async extractAndParseJSON(jsonString) {
+    async #extractAndParseJSON(jsonString) {
         const normalizedJSONString = this.#extractJSONFromString(jsonString);
         return await this.#parseJSONToObject(normalizedJSONString);
     }
@@ -173,16 +171,65 @@ class ChatWindow {
         this.#messages = [];
     }
 
-    async sendUserMessage(prompt, prettyPrinted = "") {
+    #makeNewEventsPrompt(prompt) {
+        let today = new Date().toISOString().split('T')[0];
+        let time = new Date().toTimeString().split(' ')[0];
+        let day = new Date().toLocaleString('en-us', { weekday: 'long' });
+        let newEventsPrompt = `Given the following current date and time: ${day}, ${today}T${time}:00 and planning prompt: '${prompt}', format the prompt's contents as JSON objects with the following keys: summary, description (brief, beautiful and helpful), start, end (don't write timezone.), allDay (boolean) and location (if provided) in an array that can be parsed to create calendar events. Please use 1-2 emojis per complex sentence in the title's lhs and description to make them more personal.`;
+        return newEventsPrompt;
+    }
+
+    async sendUserMessage(prompt) {
         let userMessage = this.#makeMessage(this.#USER, prompt);
-        this.#messagesAppend(userMessage);
-        let printedMessage = (prettyPrinted === "") ? userMessage : this.#makeMessage(this.#USER, prettyPrinted);
-        this.#generateMessageHTML(printedMessage);
-        if (this.getState() === CHAT_WINDOW_STATES.CREATE) {
-            let messages = this.getMessages();
-            let emptyResponseMessage = this.#makeMessage(this.#ASSISTANT, "");
-            this.#generateMessageHTML(emptyResponseMessage);
-            await this.#streamResponse(messages);
+        this.#generateMessageHTML(userMessage);
+        switch (this.#STATE) {
+            case CHAT_WINDOW_STATES.CREATE:
+                let newEventsPrompt = this.#makeNewEventsPrompt(prompt)
+                let newEventsMessage = this.#makeMessage(this.#USER, newEventsPrompt);
+                this.#messagesAppend(newEventsMessage);
+                let messages = this.getMessages();
+                let emptyResponseMessage = this.#makeMessage(this.#ASSISTANT, "");
+                this.#generateMessageHTML(emptyResponseMessage);
+                await this.#streamResponse(messages);
+
+                this.setState(CHAT_WINDOW_STATES.SPECIFY);
+                await this.sendSystemMessage("Is this event ok, then write \"yes\" to confirm.");
+                break;
+            case CHAT_WINDOW_STATES.SPECIFY:
+                let normalizedPrompt = prompt.trim().toLowerCase();
+                if (normalizedPrompt === "exit") {
+                    this.setState(CHAT_WINDOW_STATES.CREATE);
+                    this.clearMessages();
+                    await this.sendSystemMessage("Please write your plans here in as much detail as you like.");
+                } else if (normalizedPrompt === "yes") {
+                    let messages = this.getMessages();
+                    let events_message = messages.slice(-1)[0].content;
+                    let events_json = await this.#extractAndParseJSON(events_message);
+                    let eventsToProcess = Array.isArray(events_json) ? events_json : [events_json];
+                    let events = calendarjs.createEventObjects(eventsToProcess);
+                    try {
+                        const auth = await calendarjs.authorize();
+                        await calendarjs.createEvents(auth, events);
+                        let summaryList = events.map(event => event.summary).join(', ');
+                        await this.sendSystemMessage(`Events '${summaryList}' created!`);
+                    } catch (error) {
+                        console.error(error);
+                        await this.sendSystemMessage(`Events failed to be made!`);
+                    }
+
+                    this.setState(CHAT_WINDOW_STATES.CREATE);
+                    await this.sendSystemMessage("Please write your plans here in as much detail as you like.");
+                    this.clearMessages();
+                } else {
+                    this.#messagesAppend(userMessage);
+                    let messages = this.getMessages();
+                    let emptyResponseMessage = this.#makeMessage(this.#ASSISTANT, "");
+                    this.#generateMessageHTML(emptyResponseMessage);
+                    await this.#streamResponse(messages);
+                    await this.sendSystemMessage("Is this event ok, then write \"yes\" to confirm.");
+                }
+            default:
+                break;
         }
     }
 
@@ -209,61 +256,8 @@ textInputBox.addEventListener('keydown', async function (e) {
         if (e.key != 'Shift') {
             e.preventDefault();
         }
-        let today = new Date().toISOString().split('T')[0];
-        let time = new Date().toTimeString().split(' ')[0];
-        let day = new Date().toLocaleString('en-us', { weekday: 'long' });
         let textFromInputBox = textInputBox.value;
-        let planning_prompt = textFromInputBox;
-
         textInputBox.value = "";
-
-        let constructedPrompt = planning_prompt//`Given the following current date and time: ${day}, ${today}T${time} and planning prompt: '${planning_prompt}', format the prompt's contents as JSON objects with the following keys: summary, location (Optional.), description, start (ISO 8601), end, recurrence (Optional. array of RRULE strings), reminders (Optional. useDefault, overrides), timeZone (Etc/GMT+2), allDay (boolean), in an array that can be parsed to create calendar events. Please use 1-2 emojis per complex sentence in the title's lhs and description to make them more personal.`;
-
-        if (chatWindow.getState() == CHAT_WINDOW_STATES.CREATE) {
-            constructedPrompt = `Given the following current date and time: ${day}, ${today}T${time}:00 and planning prompt: '${planning_prompt}', format the prompt's contents as JSON objects with the following keys: summary, description (brief, beautiful and helpful), start, end (don't write timezone.), allDay (boolean) and location (if provided) in an array that can be parsed to create calendar events. Please use 1-2 emojis per complex sentence in the title's lhs and description to make them more personal.`;
-            await chatWindow.sendUserMessage(constructedPrompt, planning_prompt);
-            (async () => {
-                await chatWindow.sendSystemMessage("Is this event ok, then write \"yes\" to confirm.");
-            })();
-            chatWindow.setState(CHAT_WINDOW_STATES.SPECIFY);
-        } else {
-            if (constructedPrompt.trim().toLowerCase() === "exit") {
-                chatWindow.setState(CHAT_WINDOW_STATES.CREATE);
-                await chatWindow.sendUserMessage(constructedPrompt);
-                chatWindow.clearMessages();
-                await chatWindow.sendSystemMessage("Please write your plans here in as much detail as you like.");
-            } else if (constructedPrompt.trim().toLowerCase() === "yes") {
-                let messages = chatWindow.getMessages();
-                let events_message = messages.slice(-1)[0].content;
-                let events_json = await chatWindow.extractAndParseJSON(events_message);
-                let eventsToProcess = Array.isArray(events_json) ? events_json : [events_json];
-                console.log("The created events array after events_json call");
-                console.log(events_json);
-                let events = calendarjs.createEventObjects(eventsToProcess);
-
-                await chatWindow.sendUserMessage(constructedPrompt);
-
-                try {
-                    const auth = await calendarjs.authorize();
-                    await calendarjs.createEvents(auth, events);
-                    let summaryList = events.map(event => event.summary).join(', ');
-                    await chatWindow.sendSystemMessage(`Events '${summaryList}' created!`);
-                } catch (error) {
-                    console.error(error);
-                    await chatWindow.sendSystemMessage(`Events failed to be made!`);
-                }
-
-                chatWindow.setState(CHAT_WINDOW_STATES.CREATE);
-                await chatWindow.sendSystemMessage("Please write your plans here in as much detail as you like.");
-                chatWindow.clearMessages();
-            } else {
-                chatWindow.setState(CHAT_WINDOW_STATES.CREATE);
-                await chatWindow.sendUserMessage(constructedPrompt);
-                (async () => {
-                    await chatWindow.sendSystemMessage("Is this event ok, then write \"yes\" to confirm.");
-                })();
-                chatWindow.setState(CHAT_WINDOW_STATES.SPECIFY);
-            }
-        }
+        chatWindow.sendUserMessage(textFromInputBox);
     }
 });
