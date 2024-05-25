@@ -18,15 +18,14 @@ const openai = new OpenAI({
 
 let textInputBox = document.getElementById('text-input-box')
 let chatHistory = document.getElementById('chat-history')
-const defaultSystemPrompt = "You are an event manager AI who creates inspiring events with inspired emoji-choices and powerful, fitting writing.";
+const defaultSystemPrompt = "You are an event manager AI named CalendarMe who creates events with inspired emoji-choices, memorable summaries and informative, helpful descriptions.";
 const GPT4o = "gpt-4o";
 const GPT4 = "gpt-4-turbo-preview";
 const GPT3_5 = 'gpt-3.5-turbo-0125';
 
 const CHAT_WINDOW_STATES = {
     CREATE: 'Create',
-    SPECIFY: 'Specify',
-    ACCEPT: 'Accept',
+    SPECIFY: 'Specify'
 };
 
 class ChatWindow {
@@ -68,7 +67,6 @@ class ChatWindow {
     async #streamResponse(messages) {
         let stream = await openai.chat.completions.create({
             'model': this.model,
-            //'response_format': { 'type': 'json_object' },
             'messages': messages,
             'stream': true,
             'temperature': 1

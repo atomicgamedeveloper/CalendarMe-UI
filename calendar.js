@@ -151,10 +151,7 @@ async function saveCredentials(client) {
         console.error("Failed to save credentials:", error);
     }
 }
-/**
- * Load or request or authorization to call APIs.
- *
- */
+
 async function authorize() {
     let client = await loadSavedCredentialsIfExist();
     if (client) {
@@ -169,36 +166,5 @@ async function authorize() {
     }
     return client;
 }
-
-/*
-authorize().then(auth => {
-    const newEvent = createEventObjects([{ "summary": "😴 Rest Time", "description": "I'm going to take some time off to lie down and recharge 🔋.", "start": "2024-05-09T22:15:00", "end": "2024-05-09T23:15:00" }])//[{ "summary": "😴 Rest Time", "description": "I'm going to take some time off to lie down and recharge 🔋.", "start": { "dateTime": "2024-05-09T22:15:00+01:00" }, "end": { "dateTime": "2024-05-09T23:15:00+01:00" } }];
-    console.log([{ "summary": "😴 Rest Time", "description": "I'm going to take some time off to lie down and recharge 🔋.", "start": { "dateTime": "2024-05-09T22:15:00+01:00" }, "end": { "dateTime": "2024-05-09T23:15:00+01:00" } }]);
-    console.log(newEvent);
-    createEvents(auth, newEvent).catch(console.error);
-}).catch(console.error);
-/*
-authorize().then(auth => {
-    // Preparing the date format for an all-day event
-    const startDate = new Date('2024-05-15').toISOString().substring(0, 10); // Converting to 'YYYY-MM-DD' format
-    const endDate = new Date('2024-05-16').toISOString().substring(0, 10);  // All-day event end date should be the next day in 'YYYY-MM-DD' format
-
-    // Creating an event object
-    const newEvent = createEventObjects([{
-        summary: 'Team Meeting - All Day', // Summary
-        location: 'Online', // Location
-        description: 'Discuss project progress', // Description
-        start: startDate, // Start date for all-day event
-        end: endDate, // End date for all-day event
-        allDay: true, // Marking this event as an all-day event
-        // Time zone is irrelevant for all-day events but set for consistency if needed
-    }]);
-
-    // Assuming createEvent is a function that creates an event on Google Calendar using the provided authentication and event object
-    createEvents(auth, newEvent).catch(console.error);
-
-}).catch(console.error);
-
-*/
 
 module.exports = { createEvents, createEventObjects, authorize }
