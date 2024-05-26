@@ -18,7 +18,7 @@ const openai = new OpenAI({
 
 let textInputBox = document.getElementById('text-input-box')
 let chatHistory = document.getElementById('chat-history')
-const defaultSystemPrompt = "You are an event manager AI named CalendarMe who creates events with inspired emoji-choices, memorable summaries and informative, helpful descriptions.";
+const defaultSystemPrompt = "You are an event manager AI named CalendarMe who creates events with inspired emoji-choices, memorable summaries and informative, helpful descriptions. Opt to be creative rather than copying directly what the user says.";
 const GPT4o = "gpt-4o";
 const GPT4 = "gpt-4-turbo-preview";
 const GPT3_5 = 'gpt-3.5-turbo-0125';
@@ -173,7 +173,7 @@ class ChatWindow {
         let today = new Date().toISOString().split('T')[0];
         let time = new Date().toTimeString().split(' ')[0];
         let day = new Date().toLocaleString('en-us', { weekday: 'long' });
-        let newEventsPrompt = `Given the following current date and time: ${day}, ${today}T${time}:00 and planning prompt: '${prompt}', format the prompt's contents as JSON objects with the following keys: summary, description (brief, beautiful and helpful), start, end (don't write timezone.), allDay (boolean) and location (if provided) in an array that can be parsed to create calendar events. Please use 1-2 emojis per complex sentence in the title's lhs and description to make them more personal.`;
+        let newEventsPrompt = `Given the following current date and time: ${day}, ${today}T${time}:00 and planning prompt: '${prompt}', format the prompt's contents as JSON objects with the following keys: summary, description (short, in 2nd person and timeless), start, end (don't write timezone.), allDay (boolean), colour (only if asked for), and location (if provided) in an array that can be parsed to create calendar events. Please use 1-2 emojis per complex sentence in the title's lhs and description to make them more personal.`;
         return newEventsPrompt;
     }
 

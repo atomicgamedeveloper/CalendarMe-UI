@@ -30,6 +30,24 @@ async function createEvents(auth, eventBodiesArray) {
     }
 }
 
+function getColorId(colorName) {
+    const colorMap = {
+        'lightpurple': 1, 'lavender': 1, 'lilac': 1, 'violet': 1,
+        'lime': 2, 'sage': 2, 'lightgreen': 2, 'mint': 2,
+        'darkpurple': 3, 'grape': 3, 'purple': 3, 'plum': 3,
+        'salmon': 4, 'flamingo': 4, 'pink': 4, 'rose': 4,
+        'gold': 5, 'banana': 5, 'yellow': 5, 'lemon': 5,
+        'tangerine': 6, 'orange': 6, 'peach': 6,
+        'lightblue': 7, 'peacock': 7, 'teal': 7, 'aqua': 7,
+        'black': 8, 'graphite': 8, 'gray': 8, 'charcoal': 8,
+        'darkblue': 9, 'blueberry': 9, 'blue': 9, 'navy': 9,
+        'darkgreen': 10, 'basil': 10, 'green': 10, 'emerald': 10,
+        'tomato': 11, 'red': 11, 'crimson': 11
+    };
+
+    return colorMap[colorName.toLowerCase()] || null;
+}
+
 function createEventObjects(optionsArray) {
     let events = [];
     const currentDateTime = new Date();  // Get the current date and time
@@ -96,8 +114,8 @@ function createEventObjects(optionsArray) {
             };
         }
 
-        if (options.color) {
-            event.color = options.color;
+        if (options.colour) {
+            event.colorId = getColorId(options.colour);
         }
 
         events.push(event);
