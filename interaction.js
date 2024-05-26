@@ -173,7 +173,7 @@ class ChatWindow {
         let today = new Date().toISOString().split('T')[0];
         let time = new Date().toTimeString().split(' ')[0];
         let day = new Date().toLocaleString('en-us', { weekday: 'long' });
-        let newEventsPrompt = `Given the following current date and time: ${day}, ${today}T${time}:00 and planning prompt: '${prompt}', format the prompt's contents as JSON objects with the following keys: summary, description (short, in 2nd person and timeless), start, end (don't write timezone.), allDay (boolean), colour (only if asked for), and location (if provided) in an array that can be parsed to create calendar events. Please use 1-2 emojis per complex sentence in the title's lhs and description to make them more personal.`;
+        let newEventsPrompt = `Given the following current date and time: ${day}, ${today}T${time}:00 and planning prompt: '${prompt}', format the prompt's contents as JSON objects with the following keys: summary, description (short, in 2nd person and timeless), start, end (don't write timezone.), allDay (boolean), color (hex, only if asked for), and location (if provided) in an array that can be parsed to create calendar events. Please use 1-2 emojis per complex sentence in the title's lhs and description to make them more personal.`;
         return newEventsPrompt;
     }
 

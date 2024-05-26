@@ -30,22 +30,50 @@ async function createEvents(auth, eventBodiesArray) {
     }
 }
 
-function getColorId(colorName) {
-    const colorMap = {
-        'lightpurple': 1, 'lavender': 1, 'lilac': 1, 'violet': 1,
-        'lime': 2, 'sage': 2, 'lightgreen': 2, 'mint': 2,
-        'darkpurple': 3, 'grape': 3, 'purple': 3, 'plum': 3,
-        'salmon': 4, 'flamingo': 4, 'pink': 4, 'rose': 4,
-        'gold': 5, 'banana': 5, 'yellow': 5, 'lemon': 5,
-        'tangerine': 6, 'orange': 6, 'peach': 6,
-        'lightblue': 7, 'peacock': 7, 'teal': 7, 'aqua': 7,
-        'black': 8, 'graphite': 8, 'gray': 8, 'charcoal': 8,
-        'darkblue': 9, 'blueberry': 9, 'blue': 9, 'navy': 9,
-        'darkgreen': 10, 'basil': 10, 'green': 10, 'emerald': 10,
-        'tomato': 11, 'red': 11, 'crimson': 11
-    };
+const colors = {
+    1: ["#E6E6FA"], // lavender
+    2: ["#BCB88A", "#B2AC88"], // sage
+    3: ["#6F2DA8", "#6F2D91"], // grape
+    4: ["#FC8EAC", "#FC74E7"], // flamingo
+    5: ["#FFE135"], // banana
+    6: ["#F28500", "#F08035", "#FFA500"], // tangerine
+    7: ["#004B49", "#005377", "#004B77"], // peacock
+    8: ["#636466", "#4B4E53", "#4B4B4B"], // graphite
+    9: ["#0000FF", "#4F86F7", "#4B0082"], // blueberry
+    10: ["#32612D", "#5CB85C", "#007320"], // basil
+    11: ["#FF6347"] // tomato
+};
 
-    return colorMap[colorName.toLowerCase()] || null;
+function hexToRgb(hex) {
+    let bigint = parseInt(hex.slice(1), 16);
+    let r = (bigint >> 16) & 255;
+    let g = (bigint >> 8) & 255;
+    let b = bigint & 255;
+    return [r, g, b];
+}
+
+function getClosestColor(hex) {
+    let inputRgb = hexToRgb(hex);
+    let closestColorNumber = '';
+    let shortestDistance = Infinity;
+
+    for (let colorNumber in colors) {
+        for (let colorHex of colors[colorNumber]) {
+            let colorRgb = hexToRgb(colorHex);
+            let distance = Math.sqrt(
+                Math.pow(inputRgb[0] - colorRgb[0], 2) +
+                Math.pow(inputRgb[1] - colorRgb[1], 2) +
+                Math.pow(inputRgb[2] - colorRgb[2], 2)
+            );
+
+            if (distance < shortestDistance) {
+                shortestDistance = distance;
+                closestColorNumber = colorNumber;
+            }
+        }
+    }
+
+    return closestColorNumber;
 }
 
 function createEventObjects(optionsArray) {
@@ -114,8 +142,8 @@ function createEventObjects(optionsArray) {
             };
         }
 
-        if (options.colour) {
-            event.colorId = getColorId(options.colour);
+        if (options.color) {
+            event.colorId = getClosestColor(options.color);
         }
 
         events.push(event);
