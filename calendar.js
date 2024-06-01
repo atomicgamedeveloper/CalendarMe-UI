@@ -12,13 +12,28 @@ const SCOPES = ['https://www.googleapis.com/auth/calendar'];
 const TOKEN_PATH = path.join(process.cwd(), 'token.json');
 const CREDENTIALS_PATH = path.join(process.cwd(), 'credentials.json');
 
-async function createEvents(auth, eventBodiesArray) {
+/**
+ * Lists the names of calendars in the user's account.
+ * @param {OAuth2Client} auth
+ */
+async function getCalendars(auth) {
+    const calendar = google.calendar({ version: 'v3', auth });
+    const res = await calendar.calendarList.list();
+    const calendars = res.data.items;
+    if (calendars && calendars.length) {
+        return calendars.map(calendar => ({ id: calendar.id, summary: calendar.summary }));
+    } else {
+        return [];
+    }
+}
+
+async function createEvents(auth, eventBodiesArray, calendarId) {
     const calendar = google.calendar({ version: 'v3', auth });
 
     for (let eventBody of eventBodiesArray) {
         try {
             const event = await calendar.events.insert({
-                calendarId: 'primary',
+                calendarId: calendarId,
                 resource: eventBody,
             });
             console.log(`Event created: ${event.data.htmlLink}`);
@@ -38,7 +53,7 @@ const colors = {
     5: ["#FFE135"], // banana
     6: ["#F28500", "#F08035", "#FFA500"], // tangerine
     7: ["#004B49", "#005377", "#004B77"], // peacock
-    8: ["#636466", "#4B4E53", "#4B4B4B"], // graphite
+    8: ["#636466", "#4B4E53", "#4B4B4B", "#000000"], // graphite
     9: ["#0000FF", "#4F86F7", "#4B0082"], // blueberry
     10: ["#32612D", "#5CB85C", "#007320"], // basil
     11: ["#FF6347"] // tomato
@@ -213,4 +228,4 @@ async function authorize() {
     return client;
 }
 
-module.exports = { createEvents, createEventObjects, authorize }
+module.exports = { createEvents, createEventObjects, authorize, getCalendars }

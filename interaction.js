@@ -1,5 +1,4 @@
 let fs = require('fs');
-const { chat, auth } = require('googleapis/build/src/apis/chat');
 const OpenAI = require('openai');
 const calendarjs = require('./calendar.js');
 
@@ -18,6 +17,41 @@ const openai = new OpenAI({
 
 let textInputBox = document.getElementById('text-input-box')
 let chatHistory = document.getElementById('chat-history')
+
+let calendarId = 'primary';
+let options;
+
+const dropdownBtn = document.getElementById('dropdownBtn');
+const dropdownContent = document.getElementById('dropdownContent');
+
+(async () => {
+    const auth = await calendarjs.authorize();
+    calendars = await calendarjs.getCalendars(auth);
+    calendars.forEach(option => {
+        const optionDiv = document.createElement('div');
+        optionDiv.textContent = option.summary;
+        optionDiv.addEventListener('click', () => {
+            calendarId = option.id;
+            dropdownBtn.textContent = option.summary;
+            dropdownContent.classList.remove('show');
+        });
+        dropdownContent.appendChild(optionDiv);
+    });
+})();
+
+dropdownBtn.addEventListener('click', () => {
+    dropdownContent.classList.toggle('show');
+});
+
+window.addEventListener('click', (e) => {
+    if (!dropdownBtn.contains(e.target)) {
+        dropdownContent.classList.remove('show');
+    }
+});
+
+dropdownBtn.textContent = "primary";
+model = dropdownBtn.textContent;
+
 const defaultSystemPrompt = "You are an event manager AI named CalendarMe who creates events with inspired emoji-choices, memorable summaries and informative, helpful descriptions. Opt to be creative rather than copying directly what the user says.";
 const GPT4o = "gpt-4o";
 const GPT4 = "gpt-4-turbo-preview";
@@ -146,13 +180,13 @@ class ChatWindow {
             let index = 0;
             function typeMessage() {
                 if (index < message.content.length) {
-                    let chunkSize = Math.floor(Math.random() * 5) + 2; // 2-3 characters
+                    let chunkSize = Math.floor(Math.random() * 4) + 2; // 2-3 characters
                     let part = message.content.slice(index, index + chunkSize);
                     newParagraph.innerHTML += part;
                     index += chunkSize;
 
                     chatHistory.scrollTo({ top: chatHistory.scrollHeight });
-                    setTimeout(typeMessage, Math.random() * 70 + 80);
+                    setTimeout(typeMessage, Math.random() * 50 + 80);
                 } else {
                     resolve();
                 }
@@ -207,7 +241,7 @@ class ChatWindow {
                     let events = calendarjs.createEventObjects(eventsToProcess);
                     try {
                         const auth = await calendarjs.authorize();
-                        await calendarjs.createEvents(auth, events);
+                        await calendarjs.createEvents(auth, events, calendarId);
                         let summaryList = events.map(event => event.summary).join(', ');
                         await this.sendSystemMessage(`Events '${summaryList}' created!`);
                     } catch (error) {
