@@ -50,6 +50,7 @@ p {
 .dropdown {
     position: relative;
     display: inline-block;
+    margin: 10px;
 }
 
 .dropdown-button {

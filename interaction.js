@@ -19,8 +19,6 @@ let textInputBox = document.getElementById('text-input-box')
 let chatHistory = document.getElementById('chat-history')
 
 let calendarId = 'primary';
-let options;
-
 const dropdownBtn = document.getElementById('dropdownBtn');
 const dropdownContent = document.getElementById('dropdownContent');
 
