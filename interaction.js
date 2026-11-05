@@ -54,6 +54,8 @@ const defaultSystemPrompt = "You are an event manager AI named CalendarMe who cr
 const GPT4o = "gpt-4o";
 const GPT4 = "gpt-4-turbo-preview";
 const GPT3_5 = 'gpt-3.5-turbo-0125';
+const GPT5 = 'gpt-5'
+const GPT5_mini = 'gpt-5-mini'
 
 const CHAT_WINDOW_STATES = {
     CREATE: 'Create',
@@ -67,8 +69,8 @@ class ChatWindow {
     #SYSTEM = "system";
     #STATE = CHAT_WINDOW_STATES.CREATE;
 
-    constructor(model = GPT3_5, systemPrompt = defaultSystemPrompt) {
-        if (model != GPT4 && model != GPT3_5 && model != GPT4o) {
+    constructor(model = GPT5, systemPrompt = defaultSystemPrompt) {
+        if (model != GPT4 && model != GPT3_5 && model != GPT4o && model != GPT5 && model != GPT5_mini) {
             throw new Error(`Model '${model}' is not supported.`)
         }
         this.model = model;
@@ -97,23 +99,33 @@ class ChatWindow {
 
 
     async #streamResponse(messages) {
-        let stream = await openai.chat.completions.create({
-            'model': this.model,
-            'messages': messages,
-            'stream': true,
-            'temperature': 1
-        });
+        try {
+            const response = await openai.chat.completions.create({
+                model: this.model,
+                messages,
+                temperature: 1,
+            });
 
-        let initialResponeHTML = this.#getLastMessageElement();
-        let response = "";
-        for await (const chunk of stream) {
-            let newText = chunk.choices[0]?.delta?.content || '';
-            response += newText;
-            initialResponeHTML.innerHTML += newText;
+            const content = response.choices[0].message.content;
+            
+            // Make sure content exists and is not null
+            if (!content) {
+                console.error('No content received from OpenAI response');
+                return;
+            }
+
+            const initialResponseHTML = this.#getLastMessageElement();
+            initialResponseHTML.innerHTML += content;
+
+            // Use ASSISTANT role for the response message
+            const responseMessage = this.#makeMessage(this.#ASSISTANT, content);
+            this.#messagesAppend(responseMessage);
+            
+        } catch (error) {
+            console.error('Error in streamResponse:', error);
+            const initialResponseHTML = this.#getLastMessageElement();
+            initialResponseHTML.innerHTML += 'Error: Failed to get response from AI';
         }
-
-        let responseMessage = this.#makeMessage(this.#USER, response);
-        this.#messagesAppend(responseMessage);
     }
 
     #getLastMessageElement() {
@@ -132,18 +144,35 @@ class ChatWindow {
         const normalizedJSONString = this.#extractJSONFromString(jsonString);
         return await this.#parseJSONToObject(normalizedJSONString);
     }
-
+    
     #extractJSONFromString(text) {
-        const jsonPattern = /```json\s*([\s\S]*?)\s*```/; // Corrected regex pattern// Regex to extract content between ```json and ```
-        const matches = jsonPattern.exec(text);
-
-        if (matches && matches[1]) {
-            console.log(matches[1]);
-            return matches[1]; // Returns the extracted JSON string
-        } else {
-            console.error('No JSON found in the string');
-            return null;
+        // First try to match JSON in markdown code blocks
+        const markdownJsonPattern = /```json\s*([\s\S]*?)\s*```/;
+        const markdownMatches = markdownJsonPattern.exec(text);
+        
+        if (markdownMatches && markdownMatches[1]) {
+            console.log('Found JSON in markdown block:', markdownMatches[1]);
+            return markdownMatches[1];
         }
+        
+        // If no markdown JSON found, try to extract plain JSON
+        // Look for content that starts with [ or { and ends with ] or }
+        const plainJsonPattern = /(\[[\s\S]*\]|\{[\s\S]*\})/;
+        const plainMatches = plainJsonPattern.exec(text);
+        
+        if (plainMatches && plainMatches[1]) {
+            try {
+                // Validate it's actually valid JSON
+                JSON.parse(plainMatches[1]);
+                console.log('Found plain JSON:', plainMatches[1]);
+                return plainMatches[1];
+            } catch (error) {
+                console.error('Found JSON-like content but it\'s not valid JSON:', error.message);
+            }
+        }
+        
+        console.error('No valid JSON found in the string');
+        return null;
     }
 
     async #parseJSONToObject(jsonString) {
@@ -273,7 +302,7 @@ function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms))
 }
 
-const chatWindow = new ChatWindow(GPT4o);
+const chatWindow = new ChatWindow(GPT5_mini);
 (async () => {
     await chatWindow.sendSystemMessage("Welcome to CalendarMe!");
     await sleep(1000);

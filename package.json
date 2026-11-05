@@ -6,7 +6,9 @@
   "scripts": {
     "test": "run",
     "start": "electron .",
-    "make": "electron-packager . CalendarMeJS --platform=win32 --arch=x64 --out=dist --overwrite"
+    "make": "electron-packager . CalendarMeJS --platform=win32 --arch=x64 --out=dist --overwrite && npm run postmake",
+    "postmake": "copyfiles credentials.json token.json openai.txt dist/CalendarMeJS-win32-x64/",
+    "build": "npm run make"
   },
   "repository": {
     "type": "git",
@@ -25,10 +27,12 @@
   },
   "homepage": "https://github.com/atomicgamedeveloper/CalendarMe-UI#readme",
   "devDependencies": {
-    "electron": "^30.0.1"
+    "copyfiles": "^2.4.1",
+    "electron": "^30.5.1"
   },
   "dependencies": {
     "@google-cloud/local-auth": "^2.1.0",
+    "electron-packager": "^17.1.2",
     "googleapis": "^105.0.0",
     "json": "^11.0.0",
     "openai": "^4.40.2"
